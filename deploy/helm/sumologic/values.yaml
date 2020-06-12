@@ -159,6 +159,173 @@ sumologic:
     # How many spans per request should be send to receiver
     spans_per_request: 100
 
+telegraf:
+  enabled: true
+  image: telegraf:1.14
+
+  statefulset:
+    nodeSelector: {}
+    tolerations: {}
+    affinity: {}
+    ## Acceptable values for podAntiAffinity:
+    ## soft: specifies preferences that the scheduler will try to enforce but will not guarantee (Default)
+    ## hard: specifies rules that must be met for a pod to be scheduled onto a node
+    podAntiAffinity: "soft"
+    replicaCount: 3
+    resources:
+      limits:
+        memory: 1Gi
+        cpu: 1
+      requests:
+        memory: 768Mi
+        cpu: 0.5
+    
+  rawConfig: |-
+    # Read metrics from one or many prometheus clients
+    [[inputs.prometheus]]
+      ## An array of urls to scrape metrics from.
+      urls = []
+
+      ## Metric version controls the mapping from Prometheus metrics into
+      ## Telegraf metrics.  When using the prometheus_client output, use the same
+      ## value in both plugins to ensure metrics are round-tripped without
+      ## modification.
+      ##
+      ##   example: metric_version = 1; deprecated in 1.13
+      ##            metric_version = 2; recommended version
+      metric_version = 2
+
+      ## An array of Kubernetes services to scrape metrics from.
+      # kubernetes_services = ["http://my-service-dns.my-namespace:9100/metrics"]
+
+      ## Kubernetes config file to create client from.
+      # kube_config = "/path/to/kubernetes.config"
+
+      ## Scrape Kubernetes pods for the following prometheus annotations:
+      ## - prometheus.io/scrape: Enable scraping for this pod
+      ## - prometheus.io/scheme: If the metrics endpoint is secured then you will need to
+      ##     set this to `https` & most likely set the tls config.
+      ## - prometheus.io/path: If the metrics path is not /metrics, define it with this annotation.
+      ## - prometheus.io/port: If port is not 9102 use this annotation
+      monitor_kubernetes_pods = true
+      ## Restricts Kubernetes monitoring to a single namespace
+      ##   ex: monitor_kubernetes_pods_namespace = "default"
+      # monitor_kubernetes_pods_namespace = ""
+      # label selector to target pods which have the label
+      # kubernetes_label_selector = "env=dev,app=nginx"
+      # field selector to target pods
+      # eg. To scrape pods on a specific node
+      # kubernetes_field_selector = "spec.nodeName=$HOSTNAME"
+
+      ## Use bearer token for authorization. ('bearer_token' takes priority)
+      # bearer_token = "/path/to/bearer/token"
+      ## OR
+      # bearer_token_string = "abc_123"
+
+      ## HTTP Basic Authentication username and password. ('bearer_token' and
+      ## 'bearer_token_string' take priority)
+      # username = ""
+      # password = ""
+
+      ## Specify timeout duration for slower prometheus clients (default is 3s)
+      # response_timeout = "3s"
+
+      ## Optional TLS Config
+      # tls_ca = /path/to/cafile
+      # tls_cert = /path/to/certfile
+      # tls_key = /path/to/keyfile
+      ## Use TLS but skip chain & host verification
+      # insecure_skip_verify = false
+    
+    # A plugin that can transmit metrics over HTTP
+    [[outputs.http]]
+      ## URL is the address to send metrics to
+      url = "http://sumologic-sumologic-fluentd-metrics:9888/prometheus.metrics.telegraf"
+
+      ## Timeout for HTTP message
+      # timeout = "5s"
+
+      ## HTTP method, one of: "POST" or "PUT"
+      # method = "POST"
+
+      ## HTTP Basic Auth credentials
+      # username = "username"
+      # password = "pa$$word"
+
+      ## OAuth2 Client Credentials Grant
+      # client_id = "clientid"
+      # client_secret = "secret"
+      # token_url = "https://indentityprovider/oauth2/v1/token"
+      # scopes = ["urn:opc:idm:__myscopes__"]
+
+      ## Optional TLS Config
+      # tls_ca = "/etc/telegraf/ca.pem"
+      # tls_cert = "/etc/telegraf/cert.pem"
+      # tls_key = "/etc/telegraf/key.pem"
+      ## Use TLS but skip chain & host verification
+      # insecure_skip_verify = false
+
+      ## Data format to output.
+      ## Each data format has it's own unique set of configuration options, read
+      ## more about them here:
+      ## https://github.com/influxdata/telegraf/blob/master/docs/DATA_FORMATS_OUTPUT.md
+      data_format = "prometheus"
+
+      ## HTTP Content-Encoding for write request body, can be set to "gzip" to
+      ## compress body or "identity" to apply no encoding.
+      # content_encoding = "identity"
+
+      ## Additional HTTP headers
+      # [outputs.http.headers]
+      #   # Should be set manually to "application/json" for json data_format
+      #   Content-Type = "text/plain; charset=utf-8"
+    
+    # Publish all metrics to /metrics for Prometheus to scrape
+    [[outputs.prometheus_client]]
+      ## Address to listen on.
+      listen = ":9273"
+
+      ## Metric version controls the mapping from Telegraf metrics into
+      ## Prometheus format.  When using the prometheus input, use the same value in
+      ## both plugins to ensure metrics are round-tripped without modification.
+      ##
+      ##   example: metric_version = 1; deprecated in 1.13
+      ##            metric_version = 2; recommended version
+      # metric_version = 1
+
+      ## Use HTTP Basic Authentication.
+      # basic_username = "Foo"
+      # basic_password = "Bar"
+
+      ## If set, the IP Ranges which are allowed to access metrics.
+      ##   ex: ip_range = ["192.168.0.0/24", "192.168.1.0/30"]
+      # ip_range = []
+
+      ## Path to publish the metrics on.
+      # path = "/metrics"
+
+      ## Expiration interval for each metric. 0 == no expiration
+      # expiration_interval = "60s"
+
+      ## Collectors to enable, valid entries are "gocollector" and "process".
+      ## If unset, both are enabled.
+      # collectors_exclude = ["gocollector", "process"]
+
+      ## Send string metrics as Prometheus labels.
+      ## Unless set to false all string metrics will be sent as labels.
+      # string_as_label = true
+
+      ## If set, enable TLS with the given certificate.
+      # tls_cert = "/etc/ssl/telegraf.crt"
+      # tls_key = "/etc/ssl/telegraf.key"
+
+      ## Set one or more allowed client CA certificate file names to
+      ## enable mutually authenticated TLS connections
+      # tls_allowed_cacerts = ["/etc/telegraf/clientca.pem"]
+
+      ## Export metric collection time.
+      # export_timestamp = false
+
 fluentd:
   additionalPlugins: []
 

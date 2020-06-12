@@ -91,6 +91,22 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- template "sumologic.labels.app.metrics" . }}
 {{- end -}}
 
+{{- define "sumologic.labels.app.telegraf" -}}
+{{- template "sumologic.fullname" . }}-fluentd-telegraf
+{{- end -}}
+
+{{- define "sumologic.labels.app.telegraf.pod" -}}
+{{- template "sumologic.labels.app.telegraf" . }}
+{{- end -}}
+
+{{- define "sumologic.labels.app.telegraf.configmap" -}}
+{{- template "sumologic.labels.app.telegraf" . }}
+{{- end -}}
+
+{{- define "sumologic.labels.app.telegraf.statefulset" -}}
+{{- template "sumologic.labels.app.telegraf" . }}
+{{- end -}}
+
 {{- define "sumologic.labels.app.events" -}}
 {{- template "sumologic.fullname" . }}-fluentd-events
 {{- end -}}
@@ -209,6 +225,18 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 
 {{- define "sumologic.metadata.name.metrics.statefulset" -}}
 {{ template "sumologic.metadata.name.metrics" . }}
+{{- end -}}
+
+{{- define "sumologic.metadata.name.telegraf" -}}
+{{ template "sumologic.fullname" . }}-fluentd-telegraf
+{{- end -}}
+
+{{- define "sumologic.metadata.name.telegraf.configmap" -}}
+{{ template "sumologic.metadata.name.telegraf" . }}
+{{- end -}}
+
+{{- define "sumologic.metadata.name.telegraf.statefulset" -}}
+{{ template "sumologic.metadata.name.telegraf" . }}
 {{- end -}}
 
 {{- define "sumologic.metadata.name.events" -}}

@@ -1,0 +1,84 @@
+{{- if and (eq .Values.sumologic.metrics.enabled true) (eq .Values.telegraf.enabled true) }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "sumologic.metadata.name.telegraf.statefulset" . }}
+  labels:
+    app: {{ template "sumologic.labels.app.telegraf.statefulset" . }}
+    {{- include "sumologic.labels.common" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "sumologic.labels.app.telegraf.pod" . }}
+  podManagementPolicy: "Parallel"
+  replicas: {{ .Values.telegraf.statefulset.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "sumologic.labels.app.telegraf.pod" . }}
+        {{- include "sumologic.labels.common" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ template "sumologic.metadata.name.roles.serviceaccount" . }}
+{{- if .Values.telegraf.statefulset.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.telegraf.statefulset.nodeSelector | indent 8 }}
+{{- end }}
+{{- if .Values.telegraf.statefulset.tolerations }}
+      tolerations:
+{{ toYaml .Values.telegraf.statefulset.tolerations | indent 8 }}
+{{- end }}
+{{- if or .Values.telegraf.statefulset.affinity  .Values.telegraf.statefulset.podAntiAffinity }}
+      affinity:
+{{- if .Values.telegraf.statefulset.affinity }}
+{{ toYaml .Values.telegraf.statefulset.affinity | indent 8 }}
+{{- end }}
+{{- if eq .Values.telegraf.statefulset.podAntiAffinity "hard"}}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - {{ template "sumologic.labels.app.logs" . }}
+                - {{ template "sumologic.labels.app.metrics" . }}
+              - key: app
+                operator: In
+                values:
+                - prometheus-operator-prometheus
+            topologyKey: "kubernetes.io/hostname"
+{{else if eq .Values.telegraf.statefulset.podAntiAffinity "soft"}}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ template "sumologic.labels.app.telegraf.pod" . }}
+                - key: app
+                  operator: In
+                  values:
+                  - prometheus-operator-prometheus
+              topologyKey: "kubernetes.io/hostname"
+{{- end }}
+{{- end }}
+      volumes:
+      - name: config-volume
+        configMap:
+          name: {{ template "sumologic.metadata.name.telegraf.configmap" . }}
+      securityContext:
+        fsGroup: {{ .Values.fluentd.securityContext.fsGroup }}
+      containers:
+      - name: fluentd
+        image: {{ .Values.telegraf.image }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+          {{- toYaml .Values.telegraf.statefulset.resources | nindent 10 }}
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/telegraf/telegraf.conf
+          subPath: telegraf.conf
+{{- end }}
