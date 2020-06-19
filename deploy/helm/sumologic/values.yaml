@@ -618,25 +618,33 @@ fluent-bit:
     enabled: true
   env:
     - name: CHART
-      valueFrom:
-        configMapKeyRef:
-          name: sumologic-configmap
-          key: fluentdLogs
+      # valueFrom:
+      #   configMapKeyRef:
+      #     name: sumologic-configmap
+      #     key: fluentdLogs
+      value: collection-sumologic-otelcol
     - name: NAMESPACE
       valueFrom:
         fieldRef:
           fieldPath: metadata.namespace
 
   backend:
-    type: forward
-    forward:
+    type: http
+    http:
+      format: json
       # NOTE: Requires trailing "." for fully-qualified name resolution
       host: ${CHART}.${NAMESPACE}.svc.cluster.local.
-      port: 24321
-      tls: "off"
-      tls_verify: "on"
-      tls_debug: 1
-      shared_key:
+      port: 24284
+      header_tag: X-Sumo-Tag
+    # type: forward
+    # forward:
+    #   # NOTE: Requires trailing "." for fully-qualified name resolution
+    #   host: ${CHART}.${NAMESPACE}.svc.cluster.local.
+    #   port: 24321
+    #   tls: "off"
+    #   tls_verify: "on"
+    #   tls_debug: 1
+    #   shared_key:
 
   trackOffsets: true
 
@@ -1193,7 +1201,7 @@ otelcol:
   deployment:
     nodeSelector: {}
     tolerations: {}
-    replicas: 1
+    replicas: 3
     resources:
       limits:
         memory: 2Gi
@@ -1209,6 +1217,8 @@ otelcol:
       pullPolicy: IfNotPresent
   config:
     receivers:
+      dummylogs:
+        config: {}
       jaeger:
         protocols:
           thrift_compact:
@@ -1313,6 +1323,9 @@ otelcol:
     exporters:
       zipkin:
         url: "exporters.zipkin.url_replace"
+      sumologic:
+        config: {}
+        endpoint: "http://sumock.sumock:3000"
       # Following generates verbose logs with span content, useful to verify what
       # metadata is being tagged. To enable, uncomment and add "logging" to exporters below.
       # There are two levels that could be used: `debug` and `info` with the former
@@ -1322,7 +1335,7 @@ otelcol:
     service:
       extensions: [health_check]
       pipelines:
-        traces:
-          receivers: [jaeger, opencensus, otlp, zipkin]
-          processors: [memory_limiter, k8s_tagger, source, batch, queued_retry]
-          exporters: [zipkin]
+        logs:
+          receivers: [dummylogs]
+          processors: [k8s_tagger]
+          exporters: [sumologic]
