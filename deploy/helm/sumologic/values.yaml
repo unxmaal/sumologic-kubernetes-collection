@@ -459,7 +459,7 @@ fluentd:
       ## soft: specifies preferences that the scheduler will try to enforce but will not guarantee (Default)
       ## hard: specifies rules that must be met for a pod to be scheduled onto a node
       podAntiAffinity: "soft"
-      replicaCount: 3
+      replicaCount: 1
       resources:
         limits:
           memory: 1Gi
@@ -936,7 +936,306 @@ prometheus-operator:
         # kube_statefulset_replicas
         # kube_statefulset_status_observed_generation
         # kube_statefulset_status_replicas
+        - url: http://collection-sumologic-otelcol.sumologic:14267/prometheus.metrics.state
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: keep
+              regex: kube-state-metrics;(?:kube_statefulset_status_observed_generation|kube_statefulset_status_replicas|kube_statefulset_replicas|kube_statefulset_metadata_generation|kube_daemonset_status_current_number_scheduled|kube_daemonset_status_desired_number_scheduled|kube_daemonset_status_number_misscheduled|kube_daemonset_status_number_unavailable|kube_deployment_spec_replicas|kube_deployment_status_replicas_available|kube_deployment_status_replicas_unavailable|kube_node_info|kube_node_status_allocatable|kube_node_status_capacity|kube_node_status_condition|kube_pod_container_info|kube_pod_container_resource_requests|kube_pod_container_resource_limits|kube_pod_container_status_ready|kube_pod_container_status_terminated_reason|kube_pod_container_status_waiting_reason|kube_pod_container_status_restarts_total|kube_pod_status_phase)
+              sourceLabels: [job, __name__]
+        # controller manager metrics
+        # https://kubernetes.io/docs/concepts/cluster-administration/monitoring/#kube-controller-manager-metrics
+        # e.g.
+        # cloudprovider_aws_api_request_duration_seconds_bucket
+        # cloudprovider_aws_api_request_duration_seconds_count
+        # cloudprovider_aws_api_request_duration_seconds_sum
+        - url: http://collection-sumologic-otelcol.sumologic:14267/prometheus.metrics.controller-manager
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: keep
+              regex: kubelet;cloudprovider_.*_api_request_duration_seconds.*
+              sourceLabels: [job, __name__]
+        # scheduler metrics_latency_microseconds
+        # scheduler_e2e_scheduling_latency_microseconds
+        # scheduler_e2e_scheduling_latency_microseconds_bucket
+        # scheduler_e2e_scheduling_latency_microseconds_count
+        # scheduler_binding_latency_microseconds
+        # scheduler_binding_latency_microseconds_bucket
+        # scheduler_binding_latency_microseconds_count
+        # scheduler_scheduling_algorithm_latency_microseconds
+        # scheduler_scheduling_algorithm_latency_microseconds_bucket
+        # scheduler_scheduling_algorithm_latency_microseconds_count
+        - url: http://collection-sumologic-otelcol.sumologic:14267/prometheus.metrics.scheduler
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: keep
+              regex: kube-scheduler;scheduler_(?:e2e_scheduling|binding|scheduling_algorithm)_latency_microseconds.*
+              sourceLabels: [job, __name__]
+        # api server metrics:
+        # apiserver_request_count
+        # apiserver_request_total
+        # apiserver_request_duration_seconds_count
+        # apiserver_request_duration_seconds_sum
+        # apiserver_request_latencies_count
+        # apiserver_request_latencies_sum
+        # apiserver_request_latencies_summary
+        # apiserver_request_latencies_summary_count
+        # apiserver_request_latencies_summary_sum
+        # etcd_request_cache_get_duration_seconds_count
+        # etcd_request_cache_get_duration_seconds_sum
+        # etcd_request_cache_add_duration_seconds_count
+        # etcd_request_cache_add_duration_seconds_sum
+        # etcd_request_cache_add_latencies_summary_count
+        # etcd_request_cache_add_latencies_summary_sum
+        # etcd_request_cache_get_latencies_summary_count
+        # etcd_request_cache_get_latencies_summary_sum
+        # etcd_helper_cache_hit_count
+        # etcd_helper_cache_hit_total
+        # etcd_helper_cache_miss_count
+        # etcd_helper_cache_miss_total
+        - url: http://collection-sumologic-otelcol.sumologic:14267/prometheus.metrics.apiserver
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: keep
+              regex: apiserver;(?:apiserver_request_(?:count|total)|apiserver_request_(?:duration_seconds|latencies)_(?:count|sum)|apiserver_request_latencies_summary(?:|_count|_sum)|etcd_request_cache_(?:add|get)_(?:duration_seconds|latencies_summary)_(?:count|sum)|etcd_helper_cache_(?:hit|miss)_(?:count|total))
+              sourceLabels: [job, __name__]
+        # kubelet metrics:
+        # kubelet_docker_operations_errors
+        # kubelet_docker_operations_errors_total
+        # kubelet_docker_operations_duration_seconds_count
+        # kubelet_docker_operations_duration_seconds_sum
+        # kubelet_runtime_operations_duration_seconds_count
+        # kubelet_runtime_operations_duration_seconds_sum
+        # kubelet_running_container_count
+        # kubelet_running_pod_count
+        # kubelet_docker_operations_latency_microseconds
+        # kubelet_docker_operations_latency_microseconds_count
+        # kubelet_docker_operations_latency_microseconds_sum
+        # kubelet_runtime_operations_latency_microseconds
+        # kubelet_runtime_operations_latency_microseconds_count
+        # kubelet_runtime_operations_latency_microseconds_sum
+        - url: http://collection-sumologic-otelcol.sumologic:14267/prometheus.metrics.kubelet
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: keep
+              regex: kubelet;(?:kubelet_docker_operations_errors(?:|_total)|kubelet_(?:docker|runtime)_operations_duration_seconds_(?:count|sum)|kubelet_running_(?:container|pod)_count|kubelet_(:?docker|runtime)_operations_latency_microseconds(?:|_count|_sum))
+              sourceLabels: [job, __name__]
+        # cadvisor container metrics
+        # container_cpu_usage_seconds_total
+        # container_fs_limit_bytes
+        # container_fs_usage_bytes
+        # container_memory_working_set_bytes
+        - url: http://collection-sumologic-otelcol.sumologic:14267/prometheus.metrics.container
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: labelmap
+              regex: container_name
+              replacement: container
+            - action: drop
+              regex: POD
+              sourceLabels: [container]
+            - action: keep
+              regex: kubelet;.+;(?:container_cpu_usage_seconds_total|container_memory_working_set_bytes|container_fs_usage_bytes|container_fs_limit_bytes)
+              sourceLabels: [job,container,__name__]
+        # cadvisor aggregate container metrics
+        # container_network_receive_bytes_total
+        # container_network_transmit_bytes_total
+        - url: http://collection-sumologic-otelcol.sumologic:14267/prometheus.metrics.container
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: keep
+              regex: kubelet;(?:container_network_receive_bytes_total|container_network_transmit_bytes_total)
+              sourceLabels: [job, __name__]
+        # node exporter metrics
+        # node_cpu_seconds_total
+        # node_load1
+        # node_load5
+        # node_load15
+        - url: http://collection-sumologic-otelcol.sumologic:14267/prometheus.metrics.node
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: keep
+              regex: node-exporter;(?:node_load1|node_load5|node_load15|node_cpu_seconds_total)
+              sourceLabels: [job, __name__]
+        # prometheus operator rules
+        # :kube_pod_info_node_count:
+        # :node_cpu_saturation_load1:
+        # :node_cpu_utilisation:avg1m
+        # :node_disk_saturation:avg_irate
+        # :node_disk_utilisation:avg_irate
+        # :node_memory_swap_io_bytes:sum_rate
+        # :node_memory_utilisation:
+        # :node_net_saturation:sum_irate
+        # :node_net_utilisation:sum_irate
+        # cluster_quantile:apiserver_request_latencies:histogram_quantile
+        # cluster_quantile:scheduler_binding_latency:histogram_quantile
+        # cluster_quantile:scheduler_e2e_scheduling_latency:histogram_quantile
+        # cluster_quantile:scheduler_scheduling_algorithm_latency:histogram_quantile
+        # instance:node_filesystem_usage:sum
+        # instance:node_network_receive_bytes:rate:sum
+        # node:cluster_cpu_utilisation:ratio
+        # node:cluster_memory_utilisation:ratio
+        # node:node_cpu_saturation_load1:
+        # node:node_cpu_utilisation:avg1m
+        # node:node_disk_saturation:avg_irate
+        # node:node_disk_utilisation:avg_irate
+        # node:node_filesystem_avail:
+        # node:node_filesystem_usage:
+        # node:node_inodes_free:
+        # node:node_inodes_total:
+        # node:node_memory_bytes_total:sum
+        # node:node_memory_swap_io_bytes:sum_rate
+        # node:node_memory_utilisation:
+        # node:node_memory_utilisation:ratio
+        # node:node_memory_utilisation_2:
+        # node:node_net_saturation:sum_irate
+        # node:node_net_utilisation:sum_irate
+        # node:node_num_cpu:sum
+        # node_namespace_pod:kube_pod_info:
+        - url: http://collection-sumologic-otelcol.sumologic:14267/prometheus.metrics.operator.rule
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: keep
+              regex: 'cluster_quantile:apiserver_request_latencies:histogram_quantile|instance:node_filesystem_usage:sum|instance:node_network_receive_bytes:rate:sum|cluster_quantile:scheduler_e2e_scheduling_latency:histogram_quantile|cluster_quantile:scheduler_scheduling_algorithm_latency:histogram_quantile|cluster_quantile:scheduler_binding_latency:histogram_quantile|node_namespace_pod:kube_pod_info:|:kube_pod_info_node_count:|node:node_num_cpu:sum|:node_cpu_utilisation:avg1m|node:node_cpu_utilisation:avg1m|node:cluster_cpu_utilisation:ratio|:node_cpu_saturation_load1:|node:node_cpu_saturation_load1:|:node_memory_utilisation:|node:node_memory_bytes_total:sum|node:node_memory_utilisation:ratio|node:cluster_memory_utilisation:ratio|:node_memory_swap_io_bytes:sum_rate|node:node_memory_utilisation:|node:node_memory_utilisation_2:|node:node_memory_swap_io_bytes:sum_rate|:node_disk_utilisation:avg_irate|node:node_disk_utilisation:avg_irate|:node_disk_saturation:avg_irate|node:node_disk_saturation:avg_irate|node:node_filesystem_usage:|node:node_filesystem_avail:|:node_net_utilisation:sum_irate|node:node_net_utilisation:sum_irate|:node_net_saturation:sum_irate|node:node_net_saturation:sum_irate|node:node_inodes_total:|node:node_inodes_free:'
+              sourceLabels: [__name__]
+        # health
+        # fluentbit_input_bytes_total
+        # fluentbit_input_files_closed_total
+        # fluentbit_input_files_opened_total
+        # fluentbit_input_files_rotated_total
+        # fluentbit_input_records_total
+        # fluentbit_output_errors_total
+        # fluentbit_output_proc_bytes_total
+        # fluentbit_output_proc_records_total
+        # fluentbit_output_retries_failed_total
+        # fluentbit_output_retries_total
+        # fluentd_output_status_buffer_available_space_ratio
+        # fluentd_output_status_buffer_queue_length
+        # fluentd_output_status_buffer_stage_byte_size
+        # fluentd_output_status_buffer_stage_length
+        # fluentd_output_status_buffer_total_bytes
+        # fluentd_output_status_emit_count
+        # fluentd_output_status_emit_records
+        # fluentd_output_status_flush_time_count
+        # fluentd_output_status_num_errors
+        # fluentd_output_status_queue_byte_size
+        # fluentd_output_status_retry_count
+        # fluentd_output_status_retry_wait
+        # fluentd_output_status_rollback_count
+        # fluentd_output_status_slow_flush_count
+        # fluentd_output_status_write_count
+        # otelcol_otelsvc_k8s_other_added
+        # otelcol_otelsvc_k8s_other_updated
+        # otelcol_otelsvc_k8s_pod_added
+        # otelcol_otelsvc_k8s_pod_deleted
+        # otelcol_otelsvc_k8s_pod_updated
+        # otelcol_process_cpu_seconds
+        # otelcol_process_runtime_heap_alloc_bytes
+        # otelcol_process_runtime_total_alloc_bytes
+        # otelcol_process_runtime_total_sys_memory_bytes
+        # otelcol_queue_length
+        # otelcol_spans_dropped
+        # otelcol_trace_batches_dropped
+        # prometheus_remote_storage_dropped_samples_total
+        # prometheus_remote_storage_enqueue_retries_total
+        # prometheus_remote_storage_failed_samples_total
+        # prometheus_remote_storage_highest_timestamp_in_seconds
+        # prometheus_remote_storage_pending_samples
+        # prometheus_remote_storage_queue_highest_sent_timestamp_seconds
+        # prometheus_remote_storage_retried_samples_total
+        # prometheus_remote_storage_samples_in_total
+        # prometheus_remote_storage_sent_batch_duration_seconds_bucket
+        # prometheus_remote_storage_sent_batch_duration_seconds_count
+        # prometheus_remote_storage_sent_batch_duration_seconds_sum
+        # prometheus_remote_storage_shard_capacity
+        # prometheus_remote_storage_shards
+        # prometheus_remote_storage_shards_desired
+        # prometheus_remote_storage_shards_max
+        # prometheus_remote_storage_shards_min
+        # prometheus_remote_storage_string_interner_zero_reference_releases_total
+        # prometheus_remote_storage_succeeded_samples_total
+        # up
+        - url: http://collection-sumologic-otelcol.sumologic:14267/prometheus.metrics
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: keep
+              regex: (?:up|prometheus_remote_storage_.*|fluentd_.*|fluentbit.*|otelcol.*)
+              sourceLabels: [__name__]
+        # control plane metrics
+        # coredns:
+        # coredns_cache_size
+        # coredns_cache_hits_total
+        # coredns_cache_misses_total
+        # coredns_dns_request_duration_seconds_count
+        # coredns_dns_request_duration_seconds_sum
+        # coredns_dns_request_count_total
+        # coredns_dns_response_rcode_count_total
+        # coredns_forward_request_count_total
+        # process_cpu_seconds_total
+        # process_open_fds
+        # process_resident_memory_bytes
+        - url: http://collection-sumologic-otelcol.sumologic:14267/prometheus.metrics.control-plane.coredns
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: keep
+              regex: coredns;(?:coredns_cache_(size|(hits|misses)_total)|coredns_dns_request_duration_seconds_(count|sum)|coredns_(dns_request|dns_response_rcode|forward_request)_count_total|process_(cpu_seconds_total|open_fds|resident_memory_bytes))
+              sourceLabels: [job, __name__]
+        # etcd server:
+        # etcd_debugging_mvcc_db_total_size_in_bytes
+        # etcd_debugging_store_expires_total
+        # etcd_debugging_store_watchers
+        # etcd_disk_backend_commit_duration_seconds_bucket
+        # etcd_disk_wal_fsync_duration_seconds_bucket
+        # etcd_grpc_proxy_cache_hits_total
+        # etcd_grpc_proxy_cache_misses_total
+        # etcd_network_client_grpc_received_bytes_total
+        # etcd_network_client_grpc_sent_bytes_total
+        # etcd_server_has_leader
+        # etcd_server_leader_changes_seen_total
+        # etcd_server_proposals_applied_total
+        # etcd_server_proposals_committed_total
+        # etcd_server_proposals_failed_total
+        # etcd_server_proposals_pending
+        # process_cpu_seconds_total
+        # process_open_fds
+        # process_resident_memory_bytes
+        - url: http://collection-sumologic-otelcol.sumologic:14267/prometheus.metrics.control-plane.kube-etcd
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: keep
+              regex: kube-etcd;(?:etcd_debugging_(mvcc_db_total_size_in_bytes|store_(expires_total|watchers))|etcd_disk_(backend_commit|wal_fsync)_duration_seconds_bucket|etcd_grpc_proxy_cache_(hits|misses)_total|etcd_network_client_grpc_(received|sent)_bytes_total|etcd_server_(has_leader|leader_changes_seen_total)|etcd_server_proposals_(pending|(applied|committed|failed)_total)|process_(cpu_seconds_total|open_fds|resident_memory_bytes))
+              sourceLabels: [job, __name__]
+        - url: http://collection-sumologic-otelcol.sumologic:14267/prometheus.metrics.avalanche
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: keep
+              regex: .*
+              sourceLabels: [__name__]
+        # kube state metrics
+        # kube_daemonset_status_current_number_scheduled
+        # kube_daemonset_status_desired_number_scheduled
+        # kube_daemonset_status_number_misscheduled
+        # kube_daemonset_status_number_unavailable
+        # kube_deployment_spec_replicas
+        # kube_deployment_status_replicas_available
+        # kube_deployment_status_replicas_unavailable
+        # kube_node_info
+        # kube_node_status_allocatable
+        # kube_node_status_capacity
+        # kube_node_status_condition
+        # kube_pod_container_info
+        # kube_pod_container_resource_limits
+        # kube_pod_container_resource_requests
+        # kube_pod_container_status_ready
+        # kube_pod_container_status_restarts_total
+        # kube_pod_container_status_terminated_reason
+        # kube_pod_container_status_waiting_reason
+        # kube_pod_status_phase
+        # kube_statefulset_metadata_generation
+        # kube_statefulset_replicas
+        # kube_statefulset_status_observed_generation
+        # kube_statefulset_status_replicas
         - url: http://$(CHART).$(NAMESPACE).svc.cluster.local:9888/prometheus.metrics.state
+          remoteTimeout: 1s
           writeRelabelConfigs:
             - action: keep
               regex: kube-state-metrics;(?:kube_statefulset_status_observed_generation|kube_statefulset_status_replicas|kube_statefulset_replicas|kube_statefulset_metadata_generation|kube_daemonset_status_current_number_scheduled|kube_daemonset_status_desired_number_scheduled|kube_daemonset_status_number_misscheduled|kube_daemonset_status_number_unavailable|kube_deployment_spec_replicas|kube_deployment_status_replicas_available|kube_deployment_status_replicas_unavailable|kube_node_info|kube_node_status_allocatable|kube_node_status_capacity|kube_node_status_condition|kube_pod_container_info|kube_pod_container_resource_requests|kube_pod_container_resource_limits|kube_pod_container_status_ready|kube_pod_container_status_terminated_reason|kube_pod_container_status_waiting_reason|kube_pod_container_status_restarts_total|kube_pod_status_phase)
@@ -948,6 +1247,7 @@ prometheus-operator:
         # cloudprovider_aws_api_request_duration_seconds_count
         # cloudprovider_aws_api_request_duration_seconds_sum
         - url: http://$(CHART).$(NAMESPACE).svc.cluster.local:9888/prometheus.metrics.controller-manager
+          remoteTimeout: 1s
           writeRelabelConfigs:
             - action: keep
               regex: kubelet;cloudprovider_.*_api_request_duration_seconds.*
@@ -963,6 +1263,7 @@ prometheus-operator:
         # scheduler_scheduling_algorithm_latency_microseconds_bucket
         # scheduler_scheduling_algorithm_latency_microseconds_count
         - url: http://$(CHART).$(NAMESPACE).svc.cluster.local:9888/prometheus.metrics.scheduler
+          remoteTimeout: 1s
           writeRelabelConfigs:
             - action: keep
               regex: kube-scheduler;scheduler_(?:e2e_scheduling|binding|scheduling_algorithm)_latency_microseconds.*
@@ -990,6 +1291,7 @@ prometheus-operator:
         # etcd_helper_cache_miss_count
         # etcd_helper_cache_miss_total
         - url: http://$(CHART).$(NAMESPACE).svc.cluster.local:9888/prometheus.metrics.apiserver
+          remoteTimeout: 1s
           writeRelabelConfigs:
             - action: keep
               regex: apiserver;(?:apiserver_request_(?:count|total)|apiserver_request_(?:duration_seconds|latencies)_(?:count|sum)|apiserver_request_latencies_summary(?:|_count|_sum)|etcd_request_cache_(?:add|get)_(?:duration_seconds|latencies_summary)_(?:count|sum)|etcd_helper_cache_(?:hit|miss)_(?:count|total))
@@ -1010,6 +1312,7 @@ prometheus-operator:
         # kubelet_runtime_operations_latency_microseconds_count
         # kubelet_runtime_operations_latency_microseconds_sum
         - url: http://$(CHART).$(NAMESPACE).svc.cluster.local:9888/prometheus.metrics.kubelet
+          remoteTimeout: 1s
           writeRelabelConfigs:
             - action: keep
               regex: kubelet;(?:kubelet_docker_operations_errors(?:|_total)|kubelet_(?:docker|runtime)_operations_duration_seconds_(?:count|sum)|kubelet_running_(?:container|pod)_count|kubelet_(:?docker|runtime)_operations_latency_microseconds(?:|_count|_sum))
@@ -1020,6 +1323,7 @@ prometheus-operator:
         # container_fs_usage_bytes
         # container_memory_working_set_bytes
         - url: http://$(CHART).$(NAMESPACE).svc.cluster.local:9888/prometheus.metrics.container
+          remoteTimeout: 1s
           writeRelabelConfigs:
             - action: labelmap
               regex: container_name
@@ -1034,6 +1338,7 @@ prometheus-operator:
         # container_network_receive_bytes_total
         # container_network_transmit_bytes_total
         - url: http://$(CHART).$(NAMESPACE).svc.cluster.local:9888/prometheus.metrics.container
+          remoteTimeout: 1s
           writeRelabelConfigs:
             - action: keep
               regex: kubelet;(?:container_network_receive_bytes_total|container_network_transmit_bytes_total)
@@ -1044,6 +1349,7 @@ prometheus-operator:
         # node_load5
         # node_load15
         - url: http://$(CHART).$(NAMESPACE).svc.cluster.local:9888/prometheus.metrics.node
+          remoteTimeout: 1s
           writeRelabelConfigs:
             - action: keep
               regex: node-exporter;(?:node_load1|node_load5|node_load15|node_cpu_seconds_total)
@@ -1084,6 +1390,7 @@ prometheus-operator:
         # node:node_num_cpu:sum
         # node_namespace_pod:kube_pod_info:
         - url: http://$(CHART).$(NAMESPACE).svc.cluster.local:9888/prometheus.metrics.operator.rule
+          remoteTimeout: 1s
           writeRelabelConfigs:
             - action: keep
               regex: 'cluster_quantile:apiserver_request_latencies:histogram_quantile|instance:node_filesystem_usage:sum|instance:node_network_receive_bytes:rate:sum|cluster_quantile:scheduler_e2e_scheduling_latency:histogram_quantile|cluster_quantile:scheduler_scheduling_algorithm_latency:histogram_quantile|cluster_quantile:scheduler_binding_latency:histogram_quantile|node_namespace_pod:kube_pod_info:|:kube_pod_info_node_count:|node:node_num_cpu:sum|:node_cpu_utilisation:avg1m|node:node_cpu_utilisation:avg1m|node:cluster_cpu_utilisation:ratio|:node_cpu_saturation_load1:|node:node_cpu_saturation_load1:|:node_memory_utilisation:|node:node_memory_bytes_total:sum|node:node_memory_utilisation:ratio|node:cluster_memory_utilisation:ratio|:node_memory_swap_io_bytes:sum_rate|node:node_memory_utilisation:|node:node_memory_utilisation_2:|node:node_memory_swap_io_bytes:sum_rate|:node_disk_utilisation:avg_irate|node:node_disk_utilisation:avg_irate|:node_disk_saturation:avg_irate|node:node_disk_saturation:avg_irate|node:node_filesystem_usage:|node:node_filesystem_avail:|:node_net_utilisation:sum_irate|node:node_net_utilisation:sum_irate|:node_net_saturation:sum_irate|node:node_net_saturation:sum_irate|node:node_inodes_total:|node:node_inodes_free:'
@@ -1146,6 +1453,7 @@ prometheus-operator:
         # prometheus_remote_storage_succeeded_samples_total
         # up
         - url: http://$(CHART).$(NAMESPACE).svc.cluster.local:9888/prometheus.metrics
+          remoteTimeout: 1s
           writeRelabelConfigs:
             - action: keep
               regex: (?:up|prometheus_remote_storage_.*|fluentd_.*|fluentbit.*|otelcol.*)
@@ -1164,6 +1472,7 @@ prometheus-operator:
         # process_open_fds
         # process_resident_memory_bytes
         - url: http://$(CHART).$(NAMESPACE).svc.cluster.local:9888/prometheus.metrics.control-plane.coredns
+          remoteTimeout: 1s
           writeRelabelConfigs:
             - action: keep
               regex: coredns;(?:coredns_cache_(size|(hits|misses)_total)|coredns_dns_request_duration_seconds_(count|sum)|coredns_(dns_request|dns_response_rcode|forward_request)_count_total|process_(cpu_seconds_total|open_fds|resident_memory_bytes))
@@ -1188,10 +1497,17 @@ prometheus-operator:
         # process_open_fds
         # process_resident_memory_bytes
         - url: http://$(CHART).$(NAMESPACE).svc.cluster.local:9888/prometheus.metrics.control-plane.kube-etcd
+          remoteTimeout: 1s
           writeRelabelConfigs:
             - action: keep
               regex: kube-etcd;(?:etcd_debugging_(mvcc_db_total_size_in_bytes|store_(expires_total|watchers))|etcd_disk_(backend_commit|wal_fsync)_duration_seconds_bucket|etcd_grpc_proxy_cache_(hits|misses)_total|etcd_network_client_grpc_(received|sent)_bytes_total|etcd_server_(has_leader|leader_changes_seen_total)|etcd_server_proposals_(pending|(applied|committed|failed)_total)|process_(cpu_seconds_total|open_fds|resident_memory_bytes))
               sourceLabels: [job, __name__]
+        - url: http://$(CHART).$(NAMESPACE).svc.cluster.local:9888/prometheus.metrics.avalanche
+          remoteTimeout: 1s
+          writeRelabelConfigs:
+            - action: keep
+              regex: .*
+              sourceLabels: [__name__]
 
 ## Configure falco
 ## ref: https://github.com/falcosecurity/charts/blob/master/falco/values.yaml
@@ -1211,7 +1527,7 @@ otelcol:
     replicas: 1
     resources:
       limits:
-        memory: 2Gi
+        memory: 8Gi
         cpu: 1
       requests:
         memory: 384Mi
@@ -1224,25 +1540,12 @@ otelcol:
       pullPolicy: IfNotPresent
   config:
     receivers:
-      jaeger:
-        protocols:
-          thrift_compact:
-            endpoint: "0.0.0.0:6831"
-          thrift_binary:
-            endpoint: "0.0.0.0:6832"
-          grpc:
-            endpoint: "0.0.0.0:14250"
-          thrift_http:
-            endpoint: "0.0.0.0:14268"
-      opencensus:
-        endpoint: "0.0.0.0:55678"
-      otlp:
-        endpoint: "0.0.0.0:55680"
-      zipkin:
-        endpoint: "0.0.0.0:9411"
+      sumologic:
+        config: {}
     processors:
       # Tags spans with K8S metadata, basing on the context IP
       k8s_tagger:
+        auth_type: kubeConfig
         # When true, only IP is assigned and passed (so it could be tagged on another collector)
         passthrough: false
         # When true, additional fields, such as serviceName are being also extracted
@@ -1298,52 +1601,52 @@ otelcol:
           k8s.cluster.name: "processors.resource.cluster.replace"
         }
 
-      # The memory_limiter processor is used to prevent out of memory situations on the collector.
-      memory_limiter:
-        # check_interval is the time between measurements of memory usage for the
-        # purposes of avoiding going over the limits. Defaults to zero, so no
-        # checks will be performed. Values below 1 second are not recommended since
-        # it can result in unnecessary CPU consumption.
-        check_interval: 5s
+      # # The memory_limiter processor is used to prevent out of memory situations on the collector.
+      # memory_limiter:
+      #   # check_interval is the time between measurements of memory usage for the
+      #   # purposes of avoiding going over the limits. Defaults to zero, so no
+      #   # checks will be performed. Values below 1 second are not recommended since
+      #   # it can result in unnecessary CPU consumption.
+      #   check_interval: 5s
 
-        # Maximum amount of memory, in MiB, targeted to be allocated by the process heap.
-        # Note that typically the total memory usage of process will be about 50MiB higher
-        # than this value.
-        limit_mib: 1900
+      #   # Maximum amount of memory, in MiB, targeted to be allocated by the process heap.
+      #   # Note that typically the total memory usage of process will be about 50MiB higher
+      #   # than this value.
+      #   limit_mib: 1900
 
-      # The queued_retry processor uses a bounded queue to relay batches from the receiver or previous
-      # processor to the next processor.
-      queued_retry:
-        # Number of workers that dequeue batches
-        num_workers: 16
-        # Maximum number of batches kept in memory before data is dropped
-        queue_size: 10000
-        # Whether to retry on failure or give up and drop
-        retry_on_failure: true
+      # # The queued_retry processor uses a bounded queue to relay batches from the receiver or previous
+      # # processor to the next processor.
+      # queued_retry:
+      #   # Number of workers that dequeue batches
+      #   num_workers: 16
+      #   # Maximum number of batches kept in memory before data is dropped
+      #   queue_size: 10000
+      #   # Whether to retry on failure or give up and drop
+      #   retry_on_failure: true
 
-      # The batch processor accepts spans and places them into batches grouped by node and resource
-      batch:
-        # Number of spans after which a batch will be sent regardless of time
-        send_batch_size: 256
-        # Never more than this many spans are being sent in a batch
-        send_batch_hard_limit: 512
-        # Time duration after which a batch will be sent regardless of size
-        timeout: 5s
+      # # The batch processor accepts spans and places them into batches grouped by node and resource
+      # batch:
+      #   # Number of spans after which a batch will be sent regardless of time
+      #   send_batch_size: 256
+      #   # Never more than this many spans are being sent in a batch
+      #   send_batch_hard_limit: 512
+      #   # Time duration after which a batch will be sent regardless of size
+      #   timeout: 5s
     extensions:
       health_check: {}
     exporters:
-      zipkin:
-        url: ${SUMO_ENDPOINT_DEFAULT_TRACES_SOURCE}
+      sumologic:
+        endpoint: http://receiver-mock.receiver-mock:3000/
       # Following generates verbose logs with span content, useful to verify what
       # metadata is being tagged. To enable, uncomment and add "logging" to exporters below.
       # There are two levels that could be used: `debug` and `info` with the former
       # being much more verbose and including (sampled) spans content
-      # logging:
-      #   loglevel: debug
+      logging:
+        loglevel: debug
     service:
       extensions: [health_check]
       pipelines:
-        traces:
-          receivers: [jaeger, opencensus, otlp, zipkin]
-          processors: [memory_limiter, k8s_tagger, source, resource, batch, queued_retry]
-          exporters: [zipkin]
+        metrics:
+          receivers: [sumologic]
+          processors: [k8s_tagger]
+          exporters: [sumologic]
