@@ -68,3 +68,7 @@ remove-collector:
 
 remove-service-monitors:
 	kubectl delete -f ${k8s_path}/service-monitors.yaml --ignore-not-found=true
+
+## k8s commands
+expose-prometheus:
+	kubectl port-forward -n "${namespace}" service/collection-prometheus-oper-prometheus --address=0.0.0.0 9090
