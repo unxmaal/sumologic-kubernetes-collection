@@ -1,19 +1,48 @@
 #!/usr/bin/make -f
 
-path = /sumologic/deploy/helm/sumologic
 cluster = microk8s
+endpoint = http://receiver-mock.receiver-mock:3000/terraform/api/
+access_id = dummy
+access_key = dummy
+name = collection
+mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
+root_dir := $(dir $(abspath $(mkfile_path)/..))
+path = ${root_dir}deploy/helm/sumologic
+k8s_path = ${root_dir}vagrant/k8s
+namespace = sumologic
 
-provision:
+# Collector section
+## Collector upgrade
+upgrade:
+	${mkfile_path} \
+	  remove-tmp \
+	  apply-namespace \
+	  apply-receiver-mock \
+	  helm-dependencies \
+	  helm-upgrade \
+	  apply-service-monitors
+
+remove-tmp:
 	rm -rf ${path}/tmpcharts
-	kubectl apply -f k8s/sumologic.yaml
-	kubectl apply -f k8s/receiver-mock.yaml
+
+apply-namespace:
+	kubectl apply -f ${k8s_path}/sumologic.yaml
+
+apply-receiver-mock:
+	kubectl apply -f ${k8s_path}/receiver-mock.yaml
+
+helm-dependencies:
 	helm dependency update "${path}"
-	helm upgrade collection "${path}" \
-		--namespace sumologic \
-		--install \
-		--set sumologic.accessId="dummy" \
-		--set sumologic.accessKey="dummy" \
-    	--set prometheus-operator.prometheus.prometheusSpec.externalLabels.cluster="${cluster}" \
-    	--set sumologic.clusterName="${cluster}" \
-    	--set sumologic.endpoint="http://receiver-mock.receiver-mock:3000/terraform/api/"
-	kubectl apply -f k8s/service-monitors.yaml
+
+helm-upgrade:
+	helm upgrade "${name}" "${path}" \
+	  --namespace "${namespace}" \
+	  --install \
+	  --set sumologic.accessId="${access_id}" \
+	  --set sumologic.accessKey="${access_key}" \
+	  --set prometheus-operator.prometheus.prometheusSpec.externalLabels.cluster="${cluster}" \
+	  --set sumologic.clusterName="${cluster}" \
+	  --set sumologic.endpoint="${endpoint}"
+
+apply-service-monitors:
+	kubectl apply -f ${k8s_path}/service-monitors.yaml
