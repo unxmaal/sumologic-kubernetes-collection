@@ -5,7 +5,7 @@ metadata:
   name: receiver-mock
   namespace: sumologic
   labels:
-    release: collection  # ensure this matches the `release` label on your Prometheus pod
+    release: collection  # Ensure this matches the `release` label on your Prometheus pod
 spec:
   selector:
     matchLabels:
@@ -14,7 +14,7 @@ spec:
     matchNames:
     - receiver-mock
   endpoints:
-  - port: "3000" # Same as service's port name
+  - port: "3000"  # Same as service's port name
     interval: 1s
 
 ---
@@ -24,7 +24,7 @@ metadata:
   name: microk8s-kubelet
   namespace: sumologic
   labels:
-    release: collection  # ensure this matches the `release` label on your Prometheus pod
+    release: collection  # Ensure this matches the `release` label on your Prometheus pod
 spec:
   selector:
     matchLabels:
@@ -82,7 +82,7 @@ metadata:
   name: avalanche
   namespace: sumologic
   labels:
-    release: collection  # ensure this matches the `release` label on your Prometheus pod
+    release: collection  # Ensure this matches the `release` label on your Prometheus pod
 spec:
   selector:
     matchLabels:
@@ -91,5 +91,5 @@ spec:
     matchNames:
     - avalanche
   endpoints:
-  - port: "http-avalanche" # Same as service's port name
+  - port: "http-avalanche"  # Same as service's port name
     interval: 30s
