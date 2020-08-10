@@ -1,14 +1,20 @@
 #!/usr/bin/make -f
 
+# mkfile_path is absolute path of this file
+# The intention is to be able to run this file from any location
+mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
+# root_dir is a root directory of the project (github repo)
+root_dir := $(dir $(abspath $(mkfile_path)/..))
+helm_path = ${root_dir}deploy/helm/sumologic
+k8s_path = ${root_dir}vagrant/k8s
+dashboards_path = 
+
+# Collector configuration
 cluster = microk8s
 endpoint = http://receiver-mock.receiver-mock:3000/terraform/api/
 access_id = dummy
 access_key = dummy
 name = collection
-mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
-root_dir := $(dir $(abspath $(mkfile_path)/..))
-path = ${root_dir}deploy/helm/sumologic
-k8s_path = ${root_dir}vagrant/k8s
 namespace = sumologic
 
 # Collector section
@@ -25,8 +31,9 @@ upgrade:
 	  helm-upgrade \
 	  apply-service-monitors
 
+# Remove temporary charts
 remove-tmp:
-	rm -rf ${path}/tmpcharts
+	rm -rf ${helm_path}/tmpcharts
 
 apply-namespace:
 	kubectl apply -f ${k8s_path}/sumologic.yaml
@@ -35,10 +42,10 @@ apply-receiver-mock:
 	kubectl apply -f ${k8s_path}/receiver-mock.yaml
 
 helm-dependencies:
-	helm dependency update "${path}"
+	helm dependency update "${helm_path}"
 
 helm-upgrade:
-	helm upgrade "${name}" "${path}" \
+	helm upgrade "${name}" "${helm_path}" \
 	  --namespace "${namespace}" \
 	  --install \
 	  --set sumologic.accessId="${access_id}" \
@@ -85,10 +92,12 @@ expose-grafana:
 	echo "Grafana credentials\n  login:    admin\n  password: prom-operator"
 	kubectl port-forward -n "${namespace}" service/collection-grafana --address=0.0.0.0 8080:80
 
+# Load grafana dashboards as configmaps
 grafana-dashboards:
 	kubectl delete configmap -n "${namespace}" sumologic-dashboards || true
-	kubectl create configmap -n "${namespace}" sumologic-dashboards --from-file="${root_dir}vagrant/dashboards"
+	kubectl create configmap -n "${namespace}" sumologic-dashboards --from-file="${dashboards_path}"
 
+# Create secrets with microk8s certs
 create-secrets:
 	kubectl delete secret -n "${namespace}" microk8s-certs || true
 	kubectl create secret -n "${namespace}" generic microk8s-certs \
@@ -96,5 +105,6 @@ create-secrets:
 	  --from-file=/var/snap/microk8s/current/certs/server.crt \
 	  --from-file=/var/snap/microk8s/current/certs/ca.crt
 
+# patch context to use sumologic namespace as default
 patch-context:
 	kubectl config set-context --current --namespace "${namespace}"

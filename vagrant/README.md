@@ -30,6 +30,6 @@ To remove collector please use:
 ```
 
 List of other useful commands in the Makefile:
-  - expose-prometheus - exposes prometheus on port 9090 of virtual machine
-  - expose-grafana - exposes grafana on port 8080 of virtual machine
-  - apply-avalanche - run one pod deployment of avalanche (metrics generator)
+  - `expose-prometheus` - exposes prometheus on port 9090 of virtual machine
+  - `expose-grafana` - exposes grafana on port 8080 of virtual machine
+  - `apply-avalanche` - run one pod deployment of avalanche (metrics generator)
