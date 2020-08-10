@@ -1,5 +1,5 @@
 ---
-#create namespace avalanche
+# create namespace avalanche
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -9,7 +9,7 @@ spec:
   - kubernetes
 
 ---
-#create deployment avalanche
+# create deployment avalanche
 apiVersion: apps/v1 
 kind: Deployment
 metadata:
@@ -21,7 +21,7 @@ spec:
   selector:
     matchLabels:
       app: avalanche
-  replicas: 1 # tells deployment to run 1 pod matching the template
+  replicas: 1  # tells deployment to run 1 pod matching the template
   template:
     metadata:
       labels:
@@ -41,7 +41,7 @@ spec:
         - containerPort: 9001
 
 ---
-#create service avalanche-svc
+# create service avalanche-svc
 apiVersion: v1
 kind: Service
 metadata:
