@@ -62,6 +62,12 @@ apply-service-monitors:
 apply-avalanche:
 	kubectl apply -f ${k8s_path}/avalanche.yaml
 
+apply-telegraf:
+	kubectl apply -f ${k8s_path}/telegraf-operator.yml
+	kubectl apply -f ${k8s_path}/telegraf-classes.yml
+	kubectl -n test-nginx create configmap --from-file=${k8s_path}/nginx/default.conf nginx-config || true
+	kubectl apply -f ${k8s_path}/telegraf-redis.yml
+
 ## Collector removing
 clean:
 	${mkfile_path} \
@@ -83,6 +89,14 @@ remove-collector:
 
 remove-service-monitors:
 	kubectl delete -f ${k8s_path}/service-monitors.yaml --ignore-not-found=true
+
+remove-telegraf:
+	kubectl delete -f ${k8s_path}/telegraf-classes.yml
+	kubectl delete -f ${k8s_path}/telegraf-operator.yml
+	kubectl delete -f ${k8s_path}/telegraf-redis.yml
+
+remove-avalanche:
+	kubectl delete -f ${k8s_path}/avalanche.yaml
 
 ## k8s commands
 expose-prometheus:

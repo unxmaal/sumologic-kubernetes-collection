@@ -1,0 +1,127 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-redis
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-nginx
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: test-redis
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  serviceName: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        sumologic.com/service: telegraf
+      annotations:
+        telegraf.influxdata.com/inputs: |+
+          [[inputs.redis]]
+            servers = ["tcp://localhost:6379"]
+        telegraf.influxdata.com/class: sumologic-prometheus
+        telegraf.influxdata.com/limits-cpu: '750m'
+    spec:
+      containers:
+      - name: redis
+        image: redis:alpine
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx
+  namespace: test-nginx
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  serviceName: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+        sumologic.com/service: telegraf
+      annotations:
+        telegraf.influxdata.com/inputs: |+
+          [[inputs.nginx]]
+            urls = ["http://localhost/nginx_status"]
+        telegraf.influxdata.com/class: sumologic-prometheus
+        telegraf.influxdata.com/limits-cpu: '750m'
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+      volumes:
+        - name: config-volume
+          configMap:
+            # Provide the name of the ConfigMap containing the files you want
+            # to add to the container
+            name: nginx-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telegraf-metrics
+  namespace: test-redis
+  labels:
+    sumologic.com/service: telegraf
+spec:
+  ports:
+    - port: 9273
+      targetPort: 9273
+      protocol: TCP
+      name: metrics
+  selector:
+    sumologic.com/service: telegraf
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telegraf-metrics
+  namespace: test-nginx
+  labels:
+    sumologic.com/service: telegraf
+spec:
+  ports:
+    - port: 9273
+      targetPort: 9273
+      protocol: TCP
+      name: metrics
+  selector:
+    sumologic.com/service: telegraf
+  
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: telegraf
+  namespace: sumologic
+  labels:
+    release: collection  # Ensure this matches the `release` label on your Prometheus pod
+spec:
+  selector:
+    matchLabels:
+      sumologic.com/service: telegraf
+  namespaceSelector:
+    any: true
+  endpoints:
+  - port: metrics  # Same as service's port name
+    interval: 30s
