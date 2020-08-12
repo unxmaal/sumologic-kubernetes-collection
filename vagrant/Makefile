@@ -65,8 +65,18 @@ apply-avalanche:
 apply-telegraf:
 	kubectl apply -f ${k8s_path}/telegraf-operator.yml
 	kubectl apply -f ${k8s_path}/telegraf-classes.yml
+
+apply-telegraf-test:
 	kubectl -n test-nginx create configmap --from-file=${k8s_path}/nginx/default.conf nginx-config || true
 	kubectl apply -f ${k8s_path}/telegraf-redis.yml
+
+helm-telegraf:
+	kubectl create ns "telegraf-operator" || true
+	helm repo add influxdata https://helm.influxdata.com/
+	helm upgrade telegraf influxdata/telegraf-operator \
+	  --namespace "telegraf-operator" \
+	  --install \
+	  -f "${root_dir}vagrant/telegraf.values.yaml"
 
 ## Collector removing
 clean:
@@ -93,7 +103,12 @@ remove-service-monitors:
 remove-telegraf:
 	kubectl delete -f ${k8s_path}/telegraf-classes.yml
 	kubectl delete -f ${k8s_path}/telegraf-operator.yml
+
+remove-telegraf-test:
 	kubectl delete -f ${k8s_path}/telegraf-redis.yml
+
+remove-helm-telegraf:
+	helm -n telegraf-operator delete telegraf
 
 remove-avalanche:
 	kubectl delete -f ${k8s_path}/avalanche.yaml
