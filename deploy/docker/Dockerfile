@@ -1,4 +1,4 @@
-FROM fluent/fluentd:v1.11.1-debian-1.0 AS builder
+FROM fluent/fluentd:v1.11.2-debian-1.0 AS builder
 
 # Use root account to use apt
 USER root
