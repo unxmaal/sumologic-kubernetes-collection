@@ -1,6 +1,6 @@
 # Vagrant
 
-Please install vagrant and virtualbox. After that you can run the vagrant environment with just one command:
+Please install [Vagrant](https://www.vagrantup.com/) and [VirtualBox](https://www.virtualbox.org/). After that you can run the Vagrant environment with just one command:
 
 ```bash
 vagrant up
