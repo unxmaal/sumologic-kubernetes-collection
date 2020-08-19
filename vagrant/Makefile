@@ -21,15 +21,14 @@ namespace = sumologic
 ## Collector upgrade
 upgrade:
 	${mkfile_path} \
-	  patch-context \
-	  remove-tmp \
-	  apply-namespace \
-	  apply-receiver-mock \
-	  create-secrets \
-	  grafana-dashboards \
-	  helm-dependencies \
-	  helm-upgrade \
-	  apply-service-monitors
+		patch-context \
+		remove-tmp \
+		apply-namespace \
+		apply-receiver-mock \
+		grafana-dashboards \
+		helm-dependencies \
+		helm-upgrade \
+		apply-service-monitors
 
 # Remove temporary charts
 remove-tmp:
@@ -46,15 +45,15 @@ helm-dependencies:
 
 helm-upgrade:
 	helm upgrade "${name}" "${helm_path}" \
-	  --namespace "${namespace}" \
-	  --install \
-	  --set sumologic.accessId="${access_id}" \
-	  --set sumologic.accessKey="${access_key}" \
-	  --set prometheus-operator.prometheus.prometheusSpec.externalLabels.cluster="${cluster}" \
-	  --set sumologic.clusterName="${cluster}" \
-	  --set sumologic.endpoint="${endpoint}" \
-	  --set prometheus-operator.grafana.enabled=true \
-	  -f "${root_dir}vagrant/values.yaml"
+		--namespace "${namespace}" \
+		--install \
+		--set sumologic.accessId="${access_id}" \
+		--set sumologic.accessKey="${access_key}" \
+		--set prometheus-operator.prometheus.prometheusSpec.externalLabels.cluster="${cluster}" \
+		--set sumologic.clusterName="${cluster}" \
+		--set sumologic.endpoint="${endpoint}" \
+		--set prometheus-operator.grafana.enabled=true \
+		-f "${root_dir}vagrant/values.yaml"
 
 apply-service-monitors:
 	kubectl apply -f ${k8s_path}/service-monitors.yaml
@@ -65,15 +64,15 @@ apply-avalanche:
 ## Collector removing
 clean:
 	${mkfile_path} \
-	  remove-collector \
-	  remove-service-monitors remove-receiver-mock remove-prometheus-crds remove-namespace
+		remove-collector \
+		remove-service-monitors remove-receiver-mock remove-prometheus-crds remove-namespace
 
 remove-namespace:
 	kubectl delete -f ${k8s_path}/sumologic.yaml --ignore-not-found=true
 
 remove-prometheus-crds:
 	kubectl delete customresourcedefinitions.apiextensions.k8s.io  --ignore-not-found=true \
-	  {alertmanagers,podmonitors,prometheuses,prometheusrules,servicemonitors,thanosrulers}.monitoring.coreos.com
+		{alertmanagers,podmonitors,prometheuses,prometheusrules,servicemonitors,thanosrulers}.monitoring.coreos.com
 
 remove-receiver-mock:
 	kubectl delete -f ${k8s_path}/receiver-mock.yaml --ignore-not-found=true
@@ -101,9 +100,9 @@ grafana-dashboards:
 create-secrets:
 	kubectl delete secret -n "${namespace}" microk8s-certs || true
 	kubectl create secret -n "${namespace}" generic microk8s-certs \
-	  --from-file=/var/snap/microk8s/current/certs/server.key \
-	  --from-file=/var/snap/microk8s/current/certs/server.crt \
-	  --from-file=/var/snap/microk8s/current/certs/ca.crt
+		--from-file=/var/snap/microk8s/current/certs/server.key \
+		--from-file=/var/snap/microk8s/current/certs/server.crt \
+		--from-file=/var/snap/microk8s/current/certs/ca.crt
 
 # patch context to use sumologic namespace as default
 patch-context:
